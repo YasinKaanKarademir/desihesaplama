@@ -50,11 +50,45 @@ th,td{border:1px solid var(--line);padding:6px 4px;text-align:right}
 th:first-child,td:first-child{text-align:left}
 th{background:var(--bg);font-weight:600}
 th.hl,td.hl{background:var(--pri2);font-weight:700}
+
+/* Başlangıç ekranı */
+#start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(160deg,var(--pri) 0%,#134e4a 100%);z-index:10}
+#start[hidden],#app[hidden]{display:none}
+.sbox{max-width:420px;width:100%;text-align:center;color:#fff}
+.sbox .logo{font-size:72px;line-height:1;margin-bottom:12px}
+.sbox h2{font-size:30px;margin:0 0 10px}
+.sbox p{opacity:.9;margin:0 0 28px;font-size:16px}
+#go{width:100%;max-width:320px;border:0;border-radius:16px;padding:18px;font:inherit;font-size:20px;font-weight:700;background:#fff;color:#0f766e;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .1s}
+#go:active{transform:scale(.97)}
+.head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.head h1{margin:6px 2px 12px}
+.home{border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:14px;padding:8px 12px;border-radius:10px;cursor:pointer}
+button,select{cursor:pointer}
+/* Bilgisayar düzeni */
+@media(min-width:900px){
+  .wrap{max-width:1180px;padding:24px}
+  h1{font-size:24px}
+  .layout{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start}
+  .side{position:sticky;top:20px}
+  #pkgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
+  #pkgs .card{margin-bottom:0}
+  .add{margin-top:12px}
+  .add:hover,.home:hover{filter:brightness(1.08)}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>📦 Desi Hesaplama</h1>
+<div id="start">
+  <div class="sbox">
+    <div class="logo">📦</div>
+    <h2>Desi Hesaplama</h2>
+    <p>Koli ve palet için desi, hacim ve CEVA fiyat listesine göre tutar hesabı. 81 il, bölgeye göre otomatik fiyat.</p>
+    <button id="go">Başlat</button>
+  </div>
+</div>
+<div class="wrap" id="app" hidden>
+  <div class="head"><h1>📦 Desi Hesaplama</h1><button class="home" id="home" title="Başlangıç ekranı">⌂ Ana ekran</button></div>
+  <div class="layout"><div class="main">
 
   <div class="card">
     <label>Gönderi tipi</label>
@@ -92,6 +126,7 @@ th.hl,td.hl{background:var(--pri2);font-weight:700}
 
   <div id="pkgs"></div>
   <button class="add" id="add">＋ Yeni paket ekle</button>
+  </div><div class="side">
 
   <div class="total" id="total"></div>
 
@@ -101,6 +136,7 @@ th.hl,td.hl{background:var(--pri2);font-weight:700}
   </details>
 
   <div class="foot">Desi = En × Boy × Yükseklik ÷ bölen · Ücrete esas değer, desi ile gerçek kg'dan büyük olanın yukarı yuvarlanmış halidir.<br>Fiyat listesinde KDV durumu belirtilmediği için tutarlar listedeki gibi gösterilir.</div>
+  </div></div>
 </div>
 
 <script>
@@ -256,6 +292,11 @@ $("#city").onchange=e=>{if(e.target.value){S.city=e.target.value;render();save()
 $("#q").oninput=()=>{const l=filtered();if(l.length&&!l.some(c=>c.n===S.city))S.city=l[0].n;render();save()};
 $("#div").onchange=e=>{S.div=+e.target.value;render();save()};
 $("#unit").onchange=e=>{S.unit=e.target.value;render();save()};
+
+function showApp(on){$("#start").hidden=on;$("#app").hidden=!on;if(on)window.scrollTo(0,0)}
+$("#go").onclick=()=>showApp(true);
+$("#home").onclick=()=>showApp(false);
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&!$("#start").hidden)showApp(true)});
 render();
 </script>
 </body>
