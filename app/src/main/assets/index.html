@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Desi Hesaplama</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#16202a;--mute:#6b7785;--line:#e2e7ec;--pri:#0f766e;--pri2:#ccfbf1;--warn:#b45309;--warnbg:#fef3c7;--danger:#b91c1c}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1417;--card:#182026;--ink:#eef2f5;--mute:#93a1ae;--line:#27323a;--pri:#2dd4bf;--pri2:#0d3b38;--warn:#fbbf24;--warnbg:#3a2a07;--danger:#f87171}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top) 0 calc(24px + env(safe-area-inset-bottom))}
+.wrap{max-width:560px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:6px 2px 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:12px;color:var(--mute);margin:0 0 4px 2px}
+input,select{width:100%;font:inherit;font-size:17px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);min-width:0}
+input:focus,select:focus{outline:2px solid var(--pri);border-color:transparent}
+.row{display:grid;gap:8px}
+.r3{grid-template-columns:repeat(3,1fr)}
+.r2{grid-template-columns:1fr 1fr}
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;color:var(--mute);font:inherit;font-size:15px;padding:9px 4px;border-radius:9px}
+.seg button.on{background:var(--pri);color:#fff;font-weight:600}
+@media(prefers-color-scheme:dark){.seg button.on{color:#06201d}}
+.sp{margin-top:12px}
+.pk .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.pk .top b{font-size:14px}
+.pk .del{border:0;background:none;color:var(--danger);font-size:14px;padding:4px 6px}
+.res{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;font-size:13px}
+.chip{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+.chip b{font-weight:650}
+.chip.hi{background:var(--pri2);border-color:transparent}
+.add{width:100%;border:1.5px dashed var(--pri);background:none;color:var(--pri);font:inherit;font-weight:600;padding:13px;border-radius:14px;margin-bottom:12px}
+.total{background:var(--pri);color:#fff;border-radius:18px;padding:16px;margin-bottom:12px}
+@media(prefers-color-scheme:dark){.total{color:#06201d}}
+.total .big{font-size:40px;font-weight:750;line-height:1.05;letter-spacing:-.5px}
+.total .sub{font-size:13px;opacity:.85}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.grid div{background:rgba(255,255,255,.16);border-radius:12px;padding:9px 11px}
+@media(prefers-color-scheme:dark){.grid div{background:rgba(0,0,0,.14)}}
+.grid span{display:block;font-size:11.5px;opacity:.85}
+.grid b{font-size:17px}
+.note{background:var(--warnbg);color:var(--warn);border-radius:12px;padding:9px 12px;font-size:13px;margin-top:10px}
+.foot{font-size:12px;color:var(--mute);text-align:center;margin-top:8px;line-height:1.5}
+.copy{width:100%;margin-top:12px;border:0;border-radius:12px;padding:12px;font:inherit;font-weight:600;background:rgba(255,255,255,.22);color:inherit}
+details{margin-bottom:12px}
+details summary{cursor:pointer;font-size:14px;color:var(--pri);padding:6px 2px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--card);border-radius:12px;overflow:hidden}
+th,td{border:1px solid var(--line);padding:6px 4px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:var(--bg);font-weight:600}
+th.hl,td.hl{background:var(--pri2);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📦 Desi Hesaplama</h1>
+
+  <div class="card">
+    <label>Gönderi tipi</label>
+    <div class="seg" id="mode">
+      <button data-m="koli" class="on">Koli</button>
+      <button data-m="palet">Palet</button>
+    </div>
+
+    <div class="sp">
+      <label>Varış şehri</label>
+      <input id="q" placeholder="Şehir ara…" autocomplete="off" style="margin-bottom:6px">
+      <select id="city"></select>
+      <div class="foot" id="zinfo" style="text-align:left;margin:6px 2px 0"></div>
+    </div>
+
+    <div class="sp" id="listRow">
+      <label>Fiyat listesi</label>
+      <div class="seg" id="list">
+        <button data-l="revize" class="on">Yeni · %17,94 revize</button>
+        <button data-l="mevcut">Mevcut</button>
+      </div>
+    </div>
+
+    <div class="row r2 sp">
+      <div>
+        <label>Desi böleni</label>
+        <select id="div"><option value="3000">3000 (kara)</option><option value="5000">5000 (ekspres)</option><option value="6000">6000 (hava)</option></select>
+      </div>
+      <div>
+        <label>Ölçü birimi</label>
+        <select id="unit"><option value="1">cm / kg</option><option value="2.54">inç / lb</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div id="pkgs"></div>
+  <button class="add" id="add">＋ Yeni paket ekle</button>
+
+  <div class="total" id="total"></div>
+
+  <details>
+    <summary>Fiyat tablosunu göster</summary>
+    <div id="tbl"></div>
+  </details>
+
+  <div class="foot">Desi = En × Boy × Yükseklik ÷ bölen · Ücrete esas değer, desi ile gerçek kg'dan büyük olanın yukarı yuvarlanmış halidir.<br>Fiyat listesinde KDV durumu belirtilmediği için tutarlar listedeki gibi gösterilir.</div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const num=v=>{const n=parseFloat(String(v).replace(",","."));return isFinite(n)&&n>0?n:0};
+const fmt=(n,d=2)=>n.toLocaleString("tr-TR",{minimumFractionDigits:0,maximumFractionDigits:d});
+const tl=n=>n.toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})+" ₺";
+
+// Fiyat listesi (CEVA Lojistik). Bölge sırası: Şehiriçi, Yakın, Kısa, Orta, Uzun
+const ZONES=["Şehiriçi","Yakın","Kısa","Orta","Uzun"];
+const KOLI={
+  revize:{t:[[277.85,277.85,277.85,277.85,347.17],[324,324,324,340.92,392.2],[460.53,460.53,460.53,477.07,657.63]],f:23.89},
+  mevcut:{t:[[235.59,235.59,235.59,235.59,294.36],[274.72,274.72,274.72,289.06,332.54],[390.48,390.48,390.48,404.5,557.6]],f:20.26}
+};
+const PALET=[9.45,9.59,11.19,13.32,14.65]; // desi başına, minimum ATF 0
+const ZKM=["İstanbul içi","0-350 km","351-600 km","601-900 km","901 km ve üzeri"];
+// CEVA il bazında bölge dağılımı (0..4 = Şehiriçi, Yakın, Kısa, Orta, Uzun)
+const CZ=[
+ ["İstanbul (Avrupa)","İstanbul (Anadolu)"],
+ ["Bilecik","Bolu","Bursa","Düzce","Edirne","Kırklareli","Kocaeli","Sakarya","Tekirdağ","Yalova"],
+ ["Afyon","Ankara","Balıkesir","Bartın","Çanakkale","Çankırı","Eskişehir","İzmir","Karabük","Kastamonu","Kırıkkale","Kütahya","Manisa","Uşak","Zonguldak"],
+ ["Aksaray","Amasya","Antalya","Aydın","Burdur","Çorum","Denizli","Isparta","Karaman","Kayseri","Kırşehir","Konya","Muğla","Nevşehir","Niğde","Samsun","Sinop","Tokat","Yozgat"],
+ ["Adana","Mersin","Adıyaman","Ağrı","Ardahan","Artvin","Batman","Bayburt","Bingöl","Bitlis","Diyarbakır","Elazığ","Erzincan","Erzurum","Gaziantep","Giresun","Gümüşhane","Hakkari","Hatay","Iğdır","Kahramanmaraş","Kars","Kilis","Malatya","Mardin","Muş","Ordu","Osmaniye","Rize","Siirt","Sivas","Şanlıurfa","Şırnak","Trabzon","Tunceli","Van"]
+];
+const ALL=CZ.flatMap((a,z)=>a.map(n=>({n,z}))).sort((a,b)=>a.n.localeCompare(b.n,"tr"));
+const fold=s=>String(s).replace(/[İIı]/g,"i").toLowerCase().replace(/ş/g,"s").replace(/ğ/g,"g").replace(/ü/g,"u").replace(/ö/g,"o").replace(/ç/g,"c");
+function zone(){const c=ALL.find(c=>c.n===S.city);return c?c.z:0}
+function filtered(){const q=fold($("#q").value.trim());return ALL.filter(c=>fold(c.n).includes(q))}
+function fillCities(){
+  const l=filtered();
+  $("#city").innerHTML=l.length?l.map(c=>`<option value="${c.n}">${c.n} — ${ZONES[c.z]}</option>`).join(""):`<option value="" disabled>Bulunamadı</option>`;
+  if(l.some(c=>c.n===S.city))$("#city").value=S.city;
+  const z=zone();
+  $("#zinfo").innerHTML=`Seçili: <b>${S.city}</b> · Bölge: <b>${ZONES[z]}</b> (${ZKM[z]})`;
+}
+const TIERS=["1-10","11-20","21-30"];
+
+let S={mode:"koli",list:"revize",city:"İstanbul (Avrupa)",div:3000,unit:"1",pk:[{w:"",l:"",h:"",kg:"",q:"1"}]};
+try{const s=JSON.parse(localStorage.getItem("desi2")||"null");if(s)S=Object.assign(S,s);if(!S.pk||!S.pk.length)S.pk=[{w:"",l:"",h:"",kg:"",q:"1"}]}catch(e){}
+function save(){try{localStorage.setItem("desi2",JSON.stringify(S))}catch(e){}}
+
+function listKey(){return S.mode==="palet"?"revize":S.list}
+
+function calcOne(p){
+  const u=num(S.unit)||1,kgf=S.unit==="1"?1:0.45359237;
+  const w=num(p.w)*u,l=num(p.l)*u,h=num(p.h)*u,kg=num(p.kg)*kgf,q=Math.max(1,Math.floor(num(p.q))||1);
+  const vol=w*l*h, desi=vol/S.div;
+  const ok=vol>0||kg>0;
+  const billed=ok?Math.ceil(Math.max(desi,kg)-1e-9):0;
+  return {vol,desi,kg,q,ok,billed};
+}
+function unitPrice(b){
+  if(b<=0)return 0;
+  const z=zone();
+  if(S.mode==="palet")return b*PALET[z];
+  const L=KOLI[listKey()];
+  if(b<=10)return L.t[0][z];
+  if(b<=20)return L.t[1][z];
+  if(b<=30)return L.t[2][z];
+  return L.t[2][z]+(b-30)*L.f;
+}
+function tierText(b){
+  if(S.mode==="palet")return fmt(b)+" desi × "+fmt(PALET[zone()])+" ₺";
+  if(b<=10)return "1-10 desi";if(b<=20)return "11-20 desi";if(b<=30)return "21-30 desi";
+  return "30 + "+(b-30)+" desi farkı";
+}
+
+function resChips(c){
+  if(!c.ok)return `<span class="chip">Ölçü girin…</span>`;
+  const up=unitPrice(c.billed);
+  return `<span class="chip">Hacim: <b>${fmt(c.vol,0)} cm³</b> (${fmt(c.vol/1e6,4)} m³)</span>
+  <span class="chip">Desi: <b>${fmt(c.desi)}</b></span>
+  <span class="chip">Esas: <b>${c.billed}</b>${c.kg>c.desi?" (kg)":" (desi)"}</span>
+  <span class="chip">${tierText(c.billed)}</span>
+  <span class="chip hi">Fiyat: <b>${tl(up)}</b>${c.q>1?" × "+c.q+" = <b>"+tl(up*c.q)+"</b>":""}</span>`;
+}
+
+function renderTable(){
+  const k=listKey();
+  if(S.mode==="palet"){
+    $("#tbl").innerHTML=`<table><tr><th>Palet (yeni)</th>${ZONES.map(z=>`<th>${z}</th>`).join("")}</tr>
+    <tr><td>Min. ATF</td>${ZONES.map(()=>`<td>0</td>`).join("")}</tr>
+    <tr><td>Desi farkı</td>${PALET.map(v=>`<td>${fmt(v)}</td>`).join("")}</tr></table>`;
+    return;
+  }
+  const L=KOLI[k];
+  $("#tbl").innerHTML=`<table><tr><th>Koli (${k==="revize"?"yeni":"mevcut"})</th>${ZONES.map(z=>`<th>${z}</th>`).join("")}</tr>
+  ${L.t.map((r,i)=>`<tr><td>${TIERS[i]}</td>${r.map(v=>`<td>${fmt(v)}</td>`).join("")}</tr>`).join("")}
+  <tr><td>Desi farkı</td>${ZONES.map(()=>`<td>${fmt(L.f)}</td>`).join("")}</tr></table>`;
+}
+
+function render(){
+  document.querySelectorAll("#mode button").forEach(b=>b.classList.toggle("on",b.dataset.m===S.mode));
+  document.querySelectorAll("#list button").forEach(b=>b.classList.toggle("on",b.dataset.l===S.list));
+  $("#listRow").style.display=S.mode==="palet"?"none":"block";
+  fillCities();$("#div").value=S.div;$("#unit").value=S.unit;
+  const ut=S.unit==="1"?["cm","kg"]:["inç","lb"];
+  $("#pkgs").innerHTML=S.pk.map((p,i)=>{
+    const c=calcOne(p);
+    return `<div class="card pk" data-i="${i}">
+      <div class="top"><b>${S.mode==="palet"?"Palet":"Koli"} ${i+1}</b>${S.pk.length>1?`<button class="del" data-del="${i}">Sil</button>`:""}</div>
+      <div class="row r3">
+        <div><label>En (${ut[0]})</label><input data-f="w" inputmode="decimal" value="${p.w}" placeholder="0"></div>
+        <div><label>Boy (${ut[0]})</label><input data-f="l" inputmode="decimal" value="${p.l}" placeholder="0"></div>
+        <div><label>Yükseklik (${ut[0]})</label><input data-f="h" inputmode="decimal" value="${p.h}" placeholder="0"></div>
+      </div>
+      <div class="row r2" style="margin-top:8px">
+        <div><label>Gerçek ağırlık (${ut[1]})</label><input data-f="kg" inputmode="decimal" value="${p.kg}" placeholder="0"></div>
+        <div><label>Adet</label><input data-f="q" inputmode="numeric" value="${p.q}" placeholder="1"></div>
+      </div>
+      <div class="res">${resChips(c)}</div>
+    </div>`}).join("");
+  renderTable();
+  document.querySelectorAll("#tbl tr").forEach(r=>{const c=r.children[zone()+1];if(c)c.classList.add("hl")});
+  totals();
+}
+
+function totals(){
+  let vol=0,billed=0,kg=0,cnt=0,sum=0;
+  S.pk.forEach(p=>{const c=calcOne(p);if(!c.ok)return;
+    vol+=c.vol*c.q;kg+=c.kg*c.q;cnt+=c.q;billed+=c.billed*c.q;sum+=unitPrice(c.billed)*c.q});
+  const zoneName=S.city+" ("+ZONES[zone()]+") · "+(S.mode==="palet"?"Palet":"Koli "+(S.list==="revize"?"(yeni liste)":"(mevcut liste)"));
+  $("#total").innerHTML=`
+    <div class="sub">Tahmini tutar · ${zoneName}</div>
+    <div class="big">${tl(sum)}</div>
+    <div class="grid">
+      <div><span>Toplam desi (esas)</span><b>${fmt(billed)}</b></div>
+      <div><span>Toplam ağırlık</span><b>${fmt(kg)} kg</b></div>
+      <div><span>Toplam hacim</span><b>${fmt(vol/1e6,4)} m³</b></div>
+      <div><span>Toplam adet</span><b>${cnt}</b></div>
+    </div>
+    <button class="copy" id="cp">Sonucu kopyala</button>`;
+  $("#cp").onclick=async()=>{
+    const t=`${zoneName} | Desi: ${fmt(billed)} | Ağırlık: ${fmt(kg)} kg | Hacim: ${fmt(vol/1e6,4)} m³ | Adet: ${cnt} | Tutar: ${tl(sum)}`;
+    try{await navigator.clipboard.writeText(t);$("#cp").textContent="Kopyalandı ✓"}catch(e){$("#cp").textContent=t}
+  };
+}
+
+$("#pkgs").addEventListener("input",e=>{
+  const card=e.target.closest(".pk");if(!card||!e.target.dataset.f)return;
+  const i=+card.dataset.i;S.pk[i][e.target.dataset.f]=e.target.value;
+  card.querySelector(".res").innerHTML=resChips(calcOne(S.pk[i]));
+  totals();save();
+});
+$("#pkgs").addEventListener("click",e=>{
+  if(e.target.dataset.del!==undefined){S.pk.splice(+e.target.dataset.del,1);render();save()}
+});
+$("#add").onclick=()=>{S.pk.push({w:"",l:"",h:"",kg:"",q:"1"});render();save();
+  setTimeout(()=>{const c=document.querySelectorAll(".pk");c[c.length-1].querySelector("input").focus()},50)};
+$("#mode").addEventListener("click",e=>{if(e.target.dataset.m){S.mode=e.target.dataset.m;render();save()}});
+$("#list").addEventListener("click",e=>{if(e.target.dataset.l){S.list=e.target.dataset.l;render();save()}});
+$("#city").onchange=e=>{if(e.target.value){S.city=e.target.value;render();save()}};
+$("#q").oninput=()=>{const l=filtered();if(l.length&&!l.some(c=>c.n===S.city))S.city=l[0].n;render();save()};
+$("#div").onchange=e=>{S.div=+e.target.value;render();save()};
+$("#unit").onchange=e=>{S.unit=e.target.value;render();save()};
+render();
+</script>
+</body>
+</html>
