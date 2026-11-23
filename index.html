@@ -95,6 +95,8 @@ input:focus,select:focus{outline:2px solid var(--pri);border-color:transparent;b
 .res{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;font-size:12.5px}
 .chip{background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
 .chip b{font-weight:700}
+input.need{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 10%,var(--soft))}
+.chip.need{border-color:var(--acc);color:var(--acc);font-weight:600}
 .chip.hi{background:var(--pri2);border-color:transparent;color:var(--ink)}
 .lmeta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
 .lmeta:empty{display:none}
@@ -209,14 +211,14 @@ body.hasbar #toast{bottom:calc(90px + env(safe-area-inset-bottom))}
       </div>
 
       <div class="card">
-        <div class="ct"><h3>Ürün ekle</h3><small id="pcount"></small></div>
-        <div class="search"><input id="ps" placeholder="Ürün ara… (krem, aerosol, 500 ml)" autocomplete="off"></div>
+        <div class="ct"><h3 id="pTitle">Ürün ekle</h3><small id="pcount"></small></div>
+        <div class="search" id="psWrap"><input id="ps" placeholder="Ürün ara… (krem, aerosol, 500 ml)" autocomplete="off"></div>
         <div class="plist" id="plist"></div>
         <button class="addc" id="addc">＋ Listede olmayan özel koli</button>
       </div>
     </div>
 
-    <div class="ct" style="margin:6px 4px 10px"><h3>Gönderideki koliler</h3><small id="lcount"></small></div>
+    <div class="ct" style="margin:6px 4px 10px"><h3 id="lTitle">Gönderideki koliler</h3><small id="lcount"></small></div>
     <div id="lines"></div>
   </div>
 
@@ -317,6 +319,10 @@ let P=defaultProducts();
 try{const s=JSON.parse(localStorage.getItem("desi3")||"null");if(s)S=Object.assign(S,s)}catch(e){}
 try{const p=JSON.parse(localStorage.getItem("desi_urunler")||"null");if(Array.isArray(p)&&p.length)P=p}catch(e){}
 if(!Array.isArray(S.lines))S.lines=[];
+if(!Array.isArray(S.plines))S.plines=[];
+const pal=()=>S.mode==="palet", LS=()=>pal()?S.plines:S.lines, U=()=>pal()?"palet":"koli";
+// Palet tipleri (en × boy cm); yükseklik ve ağırlık elle girilir
+const PALETS=[[120,100],[80,100],[120,120],[60,80]].map(([w,l],i)=>({id:"pal"+(i+1),name:`Palet ${w}×${l} cm`,w,l}));
 function save(){try{localStorage.setItem("desi3",JSON.stringify(S));localStorage.setItem("desi_urunler",JSON.stringify(P))}catch(e){}}
 
 const zone=()=>{const c=ALL.find(c=>c.n===S.city);return c?c.z:0};
@@ -347,7 +353,18 @@ function modified(x){const p=prodOf(x);if(!p)return false;
   return x.name.trim()!==p.name||num(x.w)!==+p.w||num(x.l)!==+p.l||num(x.h)!==+p.h||num(x.kg)!==+p.kg}
 
 // ---- Ürün seçici ----
+function renderPalets(){
+  $("#pTitle").textContent="Palet ekle";$("#lTitle").textContent="Gönderideki paletler";
+  $("#psWrap").hidden=true;$("#pcount").textContent="4 ölçü";$("#addc").textContent="＋ Farklı ölçülü palet";
+  $("#plist").innerHTML=PALETS.map(p=>`<button class="prod" data-add="${p.id}">
+    <span class="ic">🟫</span>
+    <span class="tx"><b>${p.w} × ${p.l} cm</b><span>Yükseklik ve ağırlığı sen gireceksin</span></span>
+    <span class="pl">+</span></button>`).join("");
+}
 function renderProducts(){
+  if(pal())return renderPalets();
+  $("#pTitle").textContent="Ürün ekle";$("#lTitle").textContent="Gönderideki koliler";
+  $("#psWrap").hidden=false;$("#addc").textContent="＋ Listede olmayan özel koli";
   const q=fold($("#ps").value.trim());
   const l=P.filter(p=>fold(p.name).includes(q));
   $("#pcount").textContent=`${P.length} ürün`;
@@ -357,18 +374,25 @@ function renderProducts(){
     <span class="ds">${prodDesi(p)} desi</span><span class="pl">+</span></button>`).join("")
    :`<div class="empty">“${esc($("#ps").value)}” bulunamadı.<br>Özel koli ekleyebilir ya da Ürünler'den kataloğa ekleyebilirsin.</div>`;
 }
+function focusNeed(i){setTimeout(()=>{const c=document.querySelector(`#lines [data-i="${i}"]`);if(!c)return;const f=[...c.querySelectorAll("[data-f]")].find(e=>e.dataset.f!=="name"&&!num(e.value));if(f){f.focus({preventScroll:true});c.scrollIntoView({behavior:"smooth",block:"center"})}},80)}
+function addPallet(id){
+  const p=PALETS.find(p=>p.id===id);if(!p)return;
+  S.plines.push({pid:null,pal:1,name:p.name,w:String(p.w),l:String(p.l),h:"",kg:"",q:"1"});
+  const i=S.plines.length-1;renderLines(i);totals();save();toast(`Eklendi: ${p.name} · yükseklik ve ağırlığı gir`);focusNeed(i);
+}
 function addProduct(id){
+  if(pal())return addPallet(id);
   const p=P.find(p=>p.id===id);if(!p)return;
-  const ex=S.lines.findIndex(x=>x.pid===id&&!modified(x));
+  const ex=LS().findIndex(x=>x.pid===id&&!modified(x));
   let idx;
-  if(ex>=0){S.lines[ex].q=String((Math.floor(num(S.lines[ex].q))||1)+1);idx=ex;toast(`${p.name}: ${S.lines[ex].q} koli`)}
-  else{S.lines.push({pid:p.id,name:p.name,w:dec(p.w),l:dec(p.l),h:dec(p.h),kg:dec(p.kg),q:"1"});idx=S.lines.length-1;toast(`Eklendi: ${p.name}`)}
+  if(ex>=0){LS()[ex].q=String((Math.floor(num(LS()[ex].q))||1)+1);idx=ex;toast(`${p.name}: ${LS()[ex].q} koli`)}
+  else{LS().push({pid:p.id,name:p.name,w:dec(p.w),l:dec(p.l),h:dec(p.h),kg:dec(p.kg),q:"1"});idx=LS().length-1;toast(`Eklendi: ${p.name}`)}
   renderLines(idx);totals();save();
 }
 
 // ---- Gönderi satırları ----
 function chips(c){
-  if(!c.ok)return `<span class="chip">Ölçü girin…</span>`;
+  if(!c.ok||!c.vol)return `<span class="chip need">${pal()?"Yükseklik ve ağırlığı girin":"En, boy ve yüksekliği girin"}…</span>`;
   const up=unitPrice(c.billed);
   return `<span class="chip">Hacim <b>${fmt(c.vol/1e6,4)} m³</b></span>
   <span class="chip">Desi <b>${fmt(c.desi)}</b></span>
@@ -377,6 +401,7 @@ function chips(c){
   <span class="chip hi">${c.q>1?`${tl(up)} × ${c.q} = `:""}<b>${tl(up*c.q)}</b></span>`;
 }
 function meta(x){
+  if(x.pal)return "";
   const m=modified(x);
   if(m)return `<span class="badge">✎ Değiştirildi</span><button class="lk" data-revert>↺ Katalog değerine dön</button><button class="lk" data-store>💾 Kataloğa kaydet</button>`;
   if(!x.pid)return `<span class="badge" style="background:var(--pri2);color:var(--pri)">Özel koli</span><button class="lk" data-store>💾 Kataloğa ekle</button>`;
@@ -384,18 +409,18 @@ function meta(x){
 }
 function renderLines(flash){
   const el=$("#lines");
-  $("#lcount").textContent=S.lines.length?`${S.lines.length} kalem · ${S.lines.reduce((a,x)=>a+calc(x).q,0)} koli`:"";
-  if(!S.lines.length){el.innerHTML=`<div class="card empty">Henüz koli eklenmedi.<br>Yukarıdaki listeden ürün seç, adedini ve ölçülerini buradan düzenle.</div>`;return}
-  el.innerHTML=S.lines.map((x,i)=>{const c=calc(x);return `<div class="card line${i===flash?" flash":""}" data-i="${i}">
+  $("#lcount").textContent=LS().length?`${LS().length} kalem · ${LS().reduce((a,x)=>a+calc(x).q,0)} ${U()}`:"";
+  if(!LS().length){el.innerHTML=pal()?`<div class="card empty">Henüz palet eklenmedi.<br>Yukarıdan palet ölçüsünü seç, sonra yüksekliği ve ağırlığı gir.</div>`:`<div class="card empty">Henüz koli eklenmedi.<br>Yukarıdaki listeden ürün seç, adedini ve ölçülerini buradan düzenle.</div>`;return}
+  el.innerHTML=LS().map((x,i)=>{const c=calc(x);return `<div class="card line${i===flash?" flash":""}" data-i="${i}">
     <div class="lh"><span class="num">${i+1}</span><textarea class="lname" data-f="name" rows="1" placeholder="Koli adı">${esc(x.name)}</textarea><button class="x" data-del title="Sil">✕</button></div>
     <div class="row r3">
       <div><label>En (cm)</label><input data-f="w" inputmode="decimal" value="${esc(x.w)}" placeholder="0"></div>
       <div><label>Boy (cm)</label><input data-f="l" inputmode="decimal" value="${esc(x.l)}" placeholder="0"></div>
-      <div><label>Yükseklik (cm)</label><input data-f="h" inputmode="decimal" value="${esc(x.h)}" placeholder="0"></div>
+      <div><label>Yükseklik (cm)</label><input data-f="h" inputmode="decimal" value="${esc(x.h)}" placeholder="${x.pal?"gir":"0"}"${x.pal&&!num(x.h)?' class="need"':""}></div>
     </div>
     <div class="row r2" style="margin-top:8px">
-      <div><label>Koli ağırlığı (kg)</label><input data-f="kg" inputmode="decimal" value="${esc(x.kg)}" placeholder="0"></div>
-      <div><label>Koli adedi</label><div class="step"><button data-st="-1">−</button><input data-f="q" inputmode="numeric" value="${esc(x.q)}"><button data-st="1">+</button></div></div>
+      <div><label>${pal()?"Palet":"Koli"} ağırlığı (kg)</label><input data-f="kg" inputmode="decimal" value="${esc(x.kg)}" placeholder="${x.pal?"gir":"0"}"${x.pal&&!num(x.kg)?' class="need"':""}></div>
+      <div><label>${pal()?"Palet":"Koli"} adedi</label><div class="step"><button data-st="-1">−</button><input data-f="q" inputmode="numeric" value="${esc(x.q)}"><button data-st="1">+</button></div></div>
     </div>
     <div class="res">${chips(c)}</div>
     <div class="lmeta">${meta(x)}</div>
@@ -404,9 +429,9 @@ function renderLines(flash){
   if(flash!=null){const f=el.querySelector(`[data-i="${flash}"]`);if(f&&f.getBoundingClientRect().top>innerHeight-80)f.scrollIntoView({behavior:"smooth",block:"center"})}
 }
 function refreshLine(card,i){
-  card.querySelector(".res").innerHTML=chips(calc(S.lines[i]));
-  card.querySelector(".lmeta").innerHTML=meta(S.lines[i]);
-  $("#lcount").textContent=`${S.lines.length} kalem · ${S.lines.reduce((a,x)=>a+calc(x).q,0)} koli`;
+  card.querySelector(".res").innerHTML=chips(calc(LS()[i]));
+  card.querySelector(".lmeta").innerHTML=meta(LS()[i]);
+  $("#lcount").textContent=`${LS().length} kalem · ${LS().reduce((a,x)=>a+calc(x).q,0)} ${U()}`;
 }
 
 function fitNames(){document.querySelectorAll(".lname").forEach(t=>{t.style.height="auto";t.style.height=t.scrollHeight+"px"})}
@@ -415,7 +440,7 @@ addEventListener("resize",fitNames);
 // ---- Toplam ----
 function totals(){
   let vol=0,billed=0,kg=0,cnt=0,sum=0;const rows=[];
-  S.lines.forEach(x=>{const c=calc(x);if(!c.ok)return;const t=unitPrice(c.billed)*c.q;
+  LS().forEach(x=>{const c=calc(x);if(!c.ok)return;const t=unitPrice(c.billed)*c.q;
     vol+=c.vol*c.q;kg+=c.kg*c.q;cnt+=c.q;billed+=c.billed*c.q;sum+=t;rows.push({n:x.name||"Özel koli",q:c.q,b:c.billed,t})});
   const zn=`${S.city} (${ZONES[zone()]}) · ${S.mode==="palet"?"Palet":"Koli, "+(S.list==="revize"?"yeni liste":"mevcut liste")}`;
   $("#total").innerHTML=`<div class="sub">Tahmini tutar · ${esc(zn)}</div>
@@ -424,11 +449,11 @@ function totals(){
       <div><span>Toplam desi (esas)</span><b>${fmt(billed)}</b></div>
       <div><span>Toplam ağırlık</span><b>${fmt(kg)} kg</b></div>
       <div><span>Toplam hacim</span><b>${fmt(vol/1e6,3)} m³</b></div>
-      <div><span>Toplam koli</span><b>${cnt}</b></div>
+      <div><span>Toplam ${U()}</span><b>${cnt}</b></div>
     </div>
     ${rows.length?`<div class="brk">${rows.map(r=>`<div><span>${r.q} × ${esc(r.n)}</span><b>${tl(r.t)}</b></div>`).join("")}</div>`:""}
     <button class="copy" id="cp">📋 Sonucu kopyala</button>`;
-  $("#mbS").textContent=`${cnt} koli · ${fmt(billed)} desi · ${ZONES[zone()]}`;$("#mbT").textContent=tl(sum);barState();
+  $("#mbS").textContent=`${cnt} ${U()} · ${fmt(billed)} desi · ${ZONES[zone()]}`;$("#mbT").textContent=tl(sum);barState();
   $("#cp").onclick=async()=>{
     const t=[zn,...rows.map(r=>`${r.q} × ${r.n} (${r.b} desi): ${tl(r.t)}`),`Toplam: ${cnt} koli, ${fmt(billed)} desi, ${fmt(kg)} kg, ${fmt(vol/1e6,3)} m³`,`Tutar: ${tl(sum)}`].join("\n");
     try{await navigator.clipboard.writeText(t);toast("Kopyalandı ✓")}catch(e){toast("Kopyalanamadı")}
@@ -451,7 +476,7 @@ function renderTable(){
 }
 function renderAll(){
   document.querySelectorAll("#mode button").forEach(b=>b.classList.toggle("on",b.dataset.m===S.mode));
-  $("#listRow").style.visibility=S.mode==="palet"?"hidden":"visible";
+  $("#listRow").hidden=pal();$("#listRow").parentElement.style.gridTemplateColumns=pal()?"1fr":"";
   $("#list").value=S.list;$("#div").value=S.div;
   fillCities();renderProducts();renderLines();renderTable();totals();
 }
@@ -459,15 +484,15 @@ function renderAll(){
 // ---- Olaylar ----
 $("#plist").addEventListener("click",e=>{const b=e.target.closest("[data-add]");if(b)addProduct(b.dataset.add)});
 $("#ps").oninput=renderProducts;
-$("#addc").onclick=()=>{S.lines.push({pid:null,name:"Özel koli",w:"",l:"",h:"",kg:"",q:"1"});renderLines(S.lines.length-1);totals();save();
-  setTimeout(()=>{const c=document.querySelector(`#lines [data-i="${S.lines.length-1}"] [data-f="w"]`);if(c)c.focus()},60)};
+$("#addc").onclick=()=>{LS().push(pal()?{pid:null,pal:1,name:"Palet (özel ölçü)",w:"",l:"",h:"",kg:"",q:"1"}:{pid:null,name:"Özel koli",w:"",l:"",h:"",kg:"",q:"1"});renderLines(LS().length-1);totals();save();
+  setTimeout(()=>{const c=document.querySelector(`#lines [data-i="${LS().length-1}"] [data-f="w"]`);if(c)c.focus()},60)};
 $("#lines").addEventListener("input",e=>{
   const card=e.target.closest(".line");if(!card||!e.target.dataset.f)return;
-  const i=+card.dataset.i;S.lines[i][e.target.dataset.f]=e.target.value;if(e.target.classList.contains("lname")){e.target.style.height="auto";e.target.style.height=e.target.scrollHeight+"px"}refreshLine(card,i);totals();save();
+  const i=+card.dataset.i;LS()[i][e.target.dataset.f]=e.target.value;if(num(e.target.value))e.target.classList.remove("need");if(e.target.classList.contains("lname")){e.target.style.height="auto";e.target.style.height=e.target.scrollHeight+"px"}refreshLine(card,i);totals();save();
 });
 $("#lines").addEventListener("click",e=>{
-  const card=e.target.closest(".line");if(!card)return;const i=+card.dataset.i,x=S.lines[i],t=e.target.closest("button");if(!t)return;
-  if(t.hasAttribute("data-del")){S.lines.splice(i,1);renderLines();totals();save();toast("Koli kaldırıldı");return}
+  const card=e.target.closest(".line");if(!card)return;const i=+card.dataset.i,x=LS()[i],t=e.target.closest("button");if(!t)return;
+  if(t.hasAttribute("data-del")){LS().splice(i,1);renderLines();totals();save();toast(pal()?"Palet kaldırıldı":"Koli kaldırıldı");return}
   if(t.dataset.st){const q=Math.max(1,(Math.floor(num(x.q))||1)+(+t.dataset.st));x.q=String(q);card.querySelector('[data-f="q"]').value=q;refreshLine(card,i);totals();save();return}
   if(t.hasAttribute("data-revert")){const p=prodOf(x);Object.assign(x,{name:p.name,w:dec(p.w),l:dec(p.l),h:dec(p.h),kg:dec(p.kg)});renderLines(i);totals();save();toast("Katalog değerlerine dönüldü");return}
   if(t.hasAttribute("data-store")){
@@ -478,7 +503,7 @@ $("#lines").addEventListener("click",e=>{
     x.name=v.name;renderLines(i);renderProducts();save();toast("Katalog güncellendi ✓");
   }
 });
-$("#mode").addEventListener("click",e=>{if(e.target.dataset.m){S.mode=e.target.dataset.m;renderAll();save()}});
+$("#mode").addEventListener("click",e=>{if(e.target.dataset.m){S.mode=e.target.dataset.m;$("#ps").value="";renderAll();save()}});
 $("#list").onchange=e=>{S.list=e.target.value;renderAll();save()};
 $("#div").onchange=e=>{S.div=+e.target.value;renderAll();save()};
 $("#city").onchange=e=>{if(e.target.value){S.city=e.target.value;renderAll();save()}};
@@ -513,7 +538,7 @@ $("#resetCat").onclick=()=>{
 
 // ---- Mobil alt çubuk ----
 let totalVisible=false;
-function barState(){const on=S.lines.length>0&&!totalVisible&&!$("#app").hidden&&$("#cat").hidden;$("#mbar").classList.toggle("off",!on);document.body.classList.toggle("hasbar",S.lines.length>0)}
+function barState(){const on=LS().length>0&&!totalVisible&&!$("#app").hidden&&$("#cat").hidden;$("#mbar").classList.toggle("off",!on);document.body.classList.toggle("hasbar",LS().length>0)}
 try{new IntersectionObserver(es=>{totalVisible=es[0].isIntersecting;barState()},{threshold:.25}).observe($("#total"))}catch(e){}
 $("#mbar").onclick=()=>$("#total").scrollIntoView({behavior:"smooth",block:"center"});
 // ---- Başlangıç ----
