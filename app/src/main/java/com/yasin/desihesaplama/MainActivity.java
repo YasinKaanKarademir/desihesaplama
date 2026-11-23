@@ -18,6 +18,9 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true);
+        s.setTextZoom(100); // sistem yazı boyutu düzeni bozmasın
+        web.setBackgroundColor(getResources().getColor(R.color.bg, getTheme()));
+        web.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
         web.setWebViewClient(new WebViewClient());
         web.loadUrl("file:///android_asset/index.html");
     }
